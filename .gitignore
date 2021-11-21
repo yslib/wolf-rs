@@ -1,0 +1,5 @@
+/target
+/resources
+/SDL2.dll
+/.vscode
+/Cargo.lock

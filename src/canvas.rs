@@ -9,19 +9,6 @@ pub struct Color {
 use super::math::{Vec2, Vec3};
 use super::trait_def::{FromRef, Primitive};
 
-pub struct Bound2<T: Primitive> {
-    min: Vec2<T>,
-    max: Vec2<T>,
-}
-
-impl<T: Primitive> Default for Bound2<T> {
-    fn default() -> Self {
-        Bound2::<T> {
-            min: Vec2::<T>::new(T::default(), T::default()),
-            max: Vec2::<T>::new(T::default(), T::default()),
-        }
-    }
-}
 
 pub struct Texture2D<T>
 where

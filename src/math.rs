@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use std::f32::consts::FRAC_PI_2;
+use std::{f32::{EPSILON, consts::FRAC_PI_2}, ops::Mul};
 
 use glm::radians;
+use sdl2::sys::posix_memalign;
 
 use super::trait_def::Primitive;
 
@@ -43,6 +44,7 @@ where
     }
 }
 
+
 #[derive(Copy, Clone)]
 pub struct Bound2<T: Primitive> {
     min: Vec2<T>,
@@ -71,74 +73,87 @@ pub struct Grid2 {
 
 // Bresenham
 pub struct DDAIterator<'a> {
-    proj_x: f32,
-    proj_step: Vec2<f32>,
-    proj: Vec2<f32>,
-    radians: f32,
+    txty:Vec2<f32>,
+    dxdy:Vec2<f32>,
+    rxry:Vec2<f32>,
     cell_index: Vec2<i32>,
     bound: &'a Bound2<i32>,
 }
 
 impl<'a> DDAIterator<'a> {
     fn new(pos: Vec2<f32>, radians: f32, bound: &'a Bound2<i32>) -> Self {
-        let proj_step = Vec2::<f32> {
-            x: 1_f32,
-            y: (FRAC_PI_2 - radians).tan(),
-        };
+        let rx = radians.cos();
+        let ry = radians.sin();
+        let rxry = Vec2::<f32>::new(rx,ry);
+        let mut txty = Vec2::<f32>::new(0f32,0f32);
+        let mut dxdy = Vec2::<f32>::new(0f32,0f32);
+        if rx < 0f32{
+            dxdy.x =-1f32/rx;
+            txty.x = ((pos.x.floor()) - pos.x) / rx;
+        }else{
+            dxdy.x = 1f32/rx;
+            txty.x = ((pos.x.floor() + 1f32) - pos.x) / rx;
+        }
+        if ry < 0f32{
+            dxdy.y = -1f32/ry;
+            txty.y = ((pos.y.floor()) - pos.y) / ry;
+        }else{
+            dxdy.y = 1f32/ry;
+            txty.y = ((pos.y.floor() + 1f32) - pos.y) / ry;
+        }
         let cell_index = Vec2::<i32> { x: pos.x as i32, y: pos.y as i32 };
-		let init_tria = (pos.x.ceil() - pos.x,pos.y.ceil()-pos.y);
-        let proj = Vec2::<f32>::new(init_tria.0, init_tria.1 * (FRAC_PI_2 - radians).tan());
         DDAIterator {
-            proj_step: proj_step,
-            cell_index: cell_index,
-            proj_x: 0f32,
-            proj: proj,
+            txty:txty,
+            dxdy:dxdy,
+            rxry:rxry,
+            cell_index:cell_index,
             bound: bound,
-            radians: radians,
         }
     }
 }
 
 impl<'a> Iterator for DDAIterator<'a> {
-    type Item = (Vec2<i32>, Vec2<f32>);
+    type Item = (Vec2<i32>, f32);
     fn next(&mut self) -> Option<Self::Item> {
-        if self.proj.x < self.proj.y {
-            self.proj_x = self.proj.x;
-            self.proj.x += self.proj_step.x;
-            if self.proj_step.x < f32::EPSILON {
+        let t;
+        if self.txty.x < self.txty.y{
+            t = self.txty.x;
+            self.txty.x += self.dxdy.x;
+            if self.rxry.x < 0f32{
                 self.cell_index.x -= 1;
-            } else {
-                self.cell_index.x += 1;
+            }else{
+                self.cell_index.x +=1
             }
-        } else if self.proj.x > self.proj.y {
-            self.proj_x = self.proj.y;
-            self.proj.y += self.proj_step.y;
-            if self.proj_step.y < f32::EPSILON {
+        }else if self.txty.y < self.txty.x{
+            t = self.txty.y;
+            self.txty.y += self.dxdy.y;
+            if self.rxry.y < 0_f32{
                 self.cell_index.y -= 1;
-            } else {
+            }else{
                 self.cell_index.y += 1;
             }
-        } else {
-            self.proj_x = self.proj.y;
-            self.proj.y += self.proj_step.y;
-            self.proj.x += self.proj_step.x;
-            if self.proj_step.x < f32::EPSILON {
-                self.cell_index.x -= 1;
-            } else {
-                self.cell_index.x += 1;
-            }
-            if self.proj_step.y < f32::EPSILON {
+        }else{
+            t = self.txty.x;
+            self.txty.y += self.dxdy.y;
+            self.txty.x += self.dxdy.x;
+            if self.rxry.y < 0_f32{
                 self.cell_index.y -= 1;
-            } else {
+            }else{
                 self.cell_index.y += 1;
             }
+            if self.rxry.x < 0f32{
+                self.cell_index.x -= 1;
+            }else{
+                self.cell_index.x +=1
+            }
+
         }
         if (self.cell_index.x >= self.bound.min.x && self.cell_index.x < self.bound.max.x)
             && (self.cell_index.y >= self.bound.min.y && self.cell_index.y < self.bound.max.y)
         {
             Some((
                 self.cell_index,
-                Vec2::<f32>::new(self.proj_x, self.proj_x * self.radians.tan()),
+                t,
             ))
         } else {
             None
@@ -165,8 +180,8 @@ mod tests {
         let max = Vec2::<i32>::new(64, 64);
         let b = Bound2::<i32>::new(min, max);
         let g = Grid2::new(b);
-        let pos = Vec2::<f32>::new(22.5_f32, 1.0_f32);
-        g.iter(pos, std::f32::consts::FRAC_PI_4 * 3f32)
+        let pos = Vec2::<f32>::new(0.5f32,0f32);
+        g.iter(pos, std::f32::consts::FRAC_PI_4 * 3f32 )
             .for_each(|v| println!("{:?}", v));
     }
 }

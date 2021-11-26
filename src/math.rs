@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use std::{f32::{EPSILON, consts::FRAC_PI_2}, ops::Mul};
+use std::{f32::{EPSILON, consts::FRAC_PI_2}, ops::Mul, process::Output};
 
 use glm::radians;
 use sdl2::sys::posix_memalign;
@@ -41,6 +41,13 @@ where
 {
     pub fn new(x: T, y: T) -> Self {
         Vec2::<T> { x, y }
+    }
+}
+
+impl<T> Mul for &Vec2<T> where T:Primitive{
+    type Output = Vec2<T>;
+    fn mul(self, rhs: &Vec2<T>) -> Self::Output {
+        Vec2::<T>{x:self.x * rhs.x, y:self.y*rhs.y}
     }
 }
 

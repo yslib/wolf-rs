@@ -3,7 +3,6 @@
 use std::{f32::{EPSILON, consts::FRAC_PI_2}, ops::Mul, process::Output};
 
 use glm::radians;
-use sdl2::sys::posix_memalign;
 
 use super::trait_def::Primitive;
 

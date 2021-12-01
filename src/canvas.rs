@@ -6,15 +6,18 @@ pub struct Color {
     pub b: u8,
     pub a: u8,
 }
+use std::borrow::{Borrow, BorrowMut};
+use std::cell::{RefCell,RefMut};
+
 use super::math::{Vec2, Vec3};
-use super::trait_def::{FromRef, Primitive};
+use super::trait_def::{Primitive};
 
 
 pub struct Texture2D<T>
 where
-    T: Primitive,
+    T: Primitive
 {
-    pub data: Vec<T>, // 4-bytes aligned
+    pub data: RefCell<Vec<T>>, // 4-bytes aligned
     pub width: u32,
     pub height: u32,
     pub channel: u8,
@@ -27,24 +30,25 @@ where
 {
     fn default() -> Self {
         Texture2D {
-            data: vec![T::default(); 0],
+            data: RefCell::new(vec![T::default(); 0]),
             width: 0,
             height: 0,
             channel: 0,
         }
     }
+
 }
 
-fn my_convert2<T, U>(v:&[U])->Vec<T>
-where
-    T:FromRef<U>
-{
-    v.iter().map(T::from_ref).collect()
+impl<T> Texture2D<T> where T:Primitive{
+    pub fn buffer(&self)->RefMut<Vec<T>> {
+        self.data.borrow_mut()
+    }
 }
+
 
 pub trait From2DData<U>{
     fn from_data(
-        data: &[U],
+        data: Vec<U>,
         width: u32,
         height: u32,
         channel: u8,
@@ -53,16 +57,16 @@ pub trait From2DData<U>{
 
 impl<T, U> From2DData<U> for Texture2D<T>
 where
-    T: Primitive + FromRef<U>,
+    T: Primitive + From<U>
 {
     fn from_data(
-        data: &[U],
+        data: Vec<U>,
         width: u32,
         height: u32,
         channel: u8,
     )->Self{
         Texture2D {
-            data: my_convert2(&data),
+            data: RefCell::new(data.into_iter().map(|u|T::from(u)).collect()),
             width: width,
             height: height,
             channel: channel,

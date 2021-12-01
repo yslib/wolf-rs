@@ -16,6 +16,13 @@ fn open_asset_file(path_comp: &[&str]) -> std::fs::File {
     std::fs::File::open(cur_dir).unwrap()
 }
 
+pub fn asset_filename(path_comp:&[&str])->std::path::PathBuf{
+    let mut cur_dir = std::env::current_dir().unwrap();
+    let path:PathBuf = path_comp.iter().collect();
+    cur_dir.push(path);
+    cur_dir
+}
+
 pub struct WolfMapAtlas {
     pub rlew_flag: u16,
     pub map_offset: Vec<i32>,

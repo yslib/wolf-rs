@@ -1,19 +1,22 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use std::{f32::{EPSILON, consts::FRAC_PI_2}, ops::Mul, process::Output};
+use std::{f32::{EPSILON, consts::FRAC_PI_2}, ops::Mul, process::Output, ops::Div, ops::Add, ops::Sub, iter::Sum};
 
-use glm::radians;
+use glm::PrimCast;
+
+use crate::trait_def::NumVec;
 
 use super::trait_def::Primitive;
+
 
 #[derive(Copy, Clone)]
 pub struct Vec3<T>
 where
     T: Primitive,
 {
-    x: T,
-    y: T,
-    z: T,
+    pub x: T,
+    pub y: T,
+    pub z: T,
 }
 
 impl<T> Vec3<T>
@@ -30,8 +33,8 @@ pub struct Vec2<T>
 where
     T: Primitive,
 {
-    x: T,
-    y: T,
+    pub x: T,
+    pub y: T,
 }
 
 impl<T> Vec2<T>
@@ -43,11 +46,66 @@ where
     }
 }
 
-impl<T> Mul for &Vec2<T> where T:Primitive{
+impl<T> NumVec<T> for Vec2<T> where T:Primitive{
+    #[inline(always)]
+    fn sum(&self) ->T {
+        self.x + self.y
+    }
+    #[inline(always)]
+    fn prod(&self) ->T {
+        self.x * self.y
+    }
+}
+
+impl<T> Mul for Vec2<T> where T:Primitive{
     type Output = Vec2<T>;
-    fn mul(self, rhs: &Vec2<T>) -> Self::Output {
+    #[inline(always)]
+    fn mul(self, rhs: Vec2<T>) -> Self::Output {
         Vec2::<T>{x:self.x * rhs.x, y:self.y*rhs.y}
     }
+}
+
+impl<T> Mul<T> for Vec2<T> where T:Primitive{
+    type Output = Vec2<T>;
+    #[inline(always)]
+    fn mul(self, rhs: T) -> Self::Output {
+        Vec2::<T>{x:self.x * rhs, y:self.y*rhs}
+    }
+}
+
+impl<T> Div<T> for Vec2<T> where T:Primitive{
+    type Output = Vec2<T>;
+    #[inline(always)]
+    fn div(self, rhs: T) -> Self::Output{
+        Vec2::new(self.x/rhs,self.y/rhs)
+    }
+}
+
+impl<T> Add for Vec2<T> where T:Primitive{
+    type Output = Vec2<T>;
+    #[inline(always)]
+    fn add(self, rhs: Self) -> Self::Output {
+        Vec2::new(self.x+rhs.x,self.y+rhs.y)
+    }
+}
+
+impl<T> Sub for Vec2<T> where T:Primitive{
+    type Output = Vec2<T>;
+    #[inline(always)]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Vec2::new(self.x-rhs.x,self.y-rhs.y)
+    }
+}
+
+#[inline(always)]
+pub fn dot<T:Primitive>(v1:Vec2<T>,v2:Vec2<T>)->T{
+    (v1*v2).sum()
+}
+
+
+#[inline(always)]
+pub fn normalize<T:Primitive>(v:Vec2<T>)->Vec2<T>{
+    v / (dot(v,v).invsqrt())
 }
 
 
@@ -58,7 +116,7 @@ pub struct Bound2<T: Primitive> {
 }
 
 impl<T: Primitive> Bound2<T> {
-    fn new(min: Vec2<T>, max: Vec2<T>) -> Self {
+    pub fn new(min: Vec2<T>, max: Vec2<T>) -> Self {
         Bound2::<T> { min: min, max: max }
     }
 }
@@ -168,11 +226,11 @@ impl<'a> Iterator for DDAIterator<'a> {
 }
 
 impl Grid2 {
-    fn new(bound: Bound2<i32>) -> Self {
+    pub fn new(bound: Bound2<i32>) -> Self {
         Grid2 { bound: bound }
     }
 
-    fn iter(&self, pos: Vec2<f32>, radians: f32) -> DDAIterator {
+    pub fn iter(&self, pos: Vec2<f32>, radians: f32) -> DDAIterator {
         DDAIterator::new(pos, radians, &self.bound)
     }
 }

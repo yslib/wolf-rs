@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
 use std::{f32::{EPSILON, consts::FRAC_PI_2}, ops::Mul, process::Output, ops::Div, ops::Add, ops::Sub, iter::Sum};
 
 use glm::PrimCast;

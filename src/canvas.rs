@@ -110,6 +110,15 @@ impl Canvas {
         self.framebuffer[ind + 3] = color.a;
     }
 
+    pub fn set_pixel_by_color_index(&mut self, x: u32, y: u32, index:u8) {
+        let ind = (y as usize * self.size.0 + x as usize) * self.color_component;
+        let color = self.color_lut(index);
+        self.framebuffer[ind] = color.0;
+        self.framebuffer[ind + 1] = color.1;
+        self.framebuffer[ind + 2] = color.2;
+        self.framebuffer[ind + 3] = color.3;
+    }
+
     pub fn buffer_as_mut(&mut self) -> &mut [u8] {
         &mut self.framebuffer
     }
@@ -118,8 +127,11 @@ impl Canvas {
         self.framebuffer.fill(0xFF);
     }
 
-    pub fn draw_ceil_and_floor(&mut self, ceil_color:u8, floor_color:u8){
-
+    pub fn draw_ceil_and_floor(&mut self){
+        let half = self.buffer_bytes/2;
+        self.framebuffer[0..half].fill(64);
+        self.framebuffer[half..].fill(128);
+        self.framebuffer.iter_mut().skip(3).step_by(4).for_each(|v|*v=255);
     }
 
     pub fn set_wall(&mut self, col:usize, wall_color_index:&[u8]){

@@ -1,9 +1,12 @@
 use crate::io::{app_root_dir, asset_file};
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
 use std::convert::AsRef;
 use std::fs;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::{Path};
+use std::cell::RefCell;
 
 const LEVELS_PER_EPS: usize = 10;
 const MAP_PLANE: usize = 3;
@@ -282,32 +285,34 @@ fn read_map(
 
 
 pub struct WolfAssetCache {
-    cur_map: Vec<u16>,
+    altas: WolfMapAtlas,
     pub width:i32,
     pub height:i32,
-    cur_map_index: (i32, i32, i32),
-    texture_pool: Vec<Vec<u8>>,
-    map_head: std::fs::File,
-    altas: WolfMapAtlas,
-    wolf_level: WolfLevel,
+    inner:RefCell<AssetCache>,
 }
 
-impl WolfAssetCache {
-    pub fn open() -> WolfAssetCache {
-        let mut atlas_dir = app_root_dir().unwrap();
-        atlas_dir.push("resources/original/MAPHEAD.WL6");
-        let atlas = read_altas(atlas_dir);
-        let mut map_head = asset_file("resources/original/GAMEMAPS.WL6").unwrap();
-        WolfAssetCache {
+pub struct AssetCache{
+    pub cur_map:Vec<u16>,
+    pub cur_map_index: (i32, i32, i32),
+    pub texture_pool: Vec<Vec<u8>>,
+    pub map_head: std::fs::File,
+    pub wolf_level: WolfLevel,
+}
+
+impl<'a> AssetCache{
+    fn new()->Self{
+        let map_head = asset_file("resources/original/GAMEMAPS.WL6").unwrap();
+        AssetCache{
             cur_map: vec![],
-            width:64,
-            height:64,
             cur_map_index: (-1, -1, -1),
             texture_pool: vec![],
-            altas: atlas,
             map_head: map_head,
             wolf_level: Default::default(),
         }
+    }
+
+    pub fn get_cur_map_index(&self)->(i32,i32,i32){
+        self.cur_map_index
     }
 
     fn _check_map_index(&self, episode: i32, level: i32, map: i32) -> bool {
@@ -319,11 +324,7 @@ impl WolfAssetCache {
             && map < MAP_PLANE as i32
     }
 
-    pub fn get_cur_map_index(&self)->(i32,i32,i32){
-        self.cur_map_index
-    }
-
-    pub fn get_or_read_map(&mut self, episode: i32, level: i32, map: i32) -> &Vec<u16> {
+    pub fn get_or_read_map(&mut self, atlas:&WolfMapAtlas, episode: i32, level: i32, map: i32){
         if self._check_map_index(episode, level, map) == false {
             panic!("Invalid map index: {} {} {}", episode, level, map);
         }
@@ -332,17 +333,40 @@ impl WolfAssetCache {
             let cur_level_index = (self.cur_map_index.0, self.cur_map_index.1);
             let new_level_index = (new_map.0, new_map.1);
             if cur_level_index != new_level_index {
-                self.wolf_level = read_level(&self.altas, &mut self.map_head, episode, level);
+                self.wolf_level = read_level(&atlas, &mut self.map_head, episode, level);
             }
             self.cur_map = read_map(
-                &self.altas,
+                &atlas,
                 &self.wolf_level,
                 &mut self.map_head,
                 map as usize,
             );
             self.cur_map_index = new_map;
         }
-        &self.cur_map
+    }
+}
+
+
+impl WolfAssetCache {
+    pub fn open() -> WolfAssetCache {
+        let mut atlas_dir = app_root_dir().unwrap();
+        atlas_dir.push("resources/original/MAPHEAD.WL6");
+        let atlas = read_altas(atlas_dir);
+        WolfAssetCache {
+            width:64,
+            height:64,
+            altas:atlas,
+            inner:RefCell::new(AssetCache::new()),
+        }
+    }
+
+    pub fn get_cur_map_index(&self)->(i32,i32,i32){
+        self.inner.borrow().cur_map_index
+    }
+
+    pub fn get_or_read_map(&self, episode: i32, level: i32, map: i32) -> std::cell::Ref<AssetCache> {
+        self.inner.borrow_mut().get_or_read_map(&self.altas,episode, level, map);
+        self.inner.borrow()
     }
 }
 

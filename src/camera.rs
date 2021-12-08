@@ -1,7 +1,4 @@
-use glm::BaseFloat;
-
 use crate::math::{Vec2, normalize};
-
 
 #[derive(Debug)]
 pub struct WolfCamera {
@@ -15,7 +12,7 @@ pub struct WolfCamera {
 impl Default for WolfCamera {
     fn default() -> Self {
         WolfCamera {
-			rotate_speed:1f32,
+			rotate_speed:10f32,
 			move_speed:1f32,
 			dir:normalize(Vec2::new(1.0,1.0)),
             fov: 45f32,
@@ -25,8 +22,14 @@ impl Default for WolfCamera {
 }
 
 impl WolfCamera {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(pos:Vec2<f32>, dir:Vec2<f32>, fov:f32) -> Self {
+		WolfCamera{
+			rotate_speed:1f32,
+			move_speed:0.1f32,
+			dir:normalize(dir),
+			fov:fov,
+			pos:pos
+		}
     }
 
 	pub fn advance(&mut self, adv:i32){
@@ -35,9 +38,12 @@ impl WolfCamera {
 	}
 
 	pub fn rotate(&mut self, delta:f32){
+		let old = self.get_view_angle();
 		let angle = (delta as f32 * self.rotate_speed).to_radians();
 		self.dir.x = angle.cos() * self.dir.x - angle.sin() * self.dir.y;
 		self.dir.y = angle.sin() * self.dir.x + angle.cos() * self.dir.y;
+		let new = self.get_view_angle();
+		println!("{} -> {} ", old.to_degrees(), new.to_degrees());
 	}
 
 	pub fn get_view_angle(&self)->f32{

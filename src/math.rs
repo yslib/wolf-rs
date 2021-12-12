@@ -7,7 +7,7 @@ use crate::trait_def::NumVec;
 use super::trait_def::Primitive;
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Vec3<T>
 where
     T: Primitive,
@@ -175,10 +175,12 @@ impl<'a> DDAIterator<'a> {
 }
 
 impl<'a> Iterator for DDAIterator<'a> {
-    type Item = (Vec2<i32>, f32);
+    type Item = (Vec2<i32>, f32, f32);
     fn next(&mut self) -> Option<Self::Item> {
         let t;
+        let mut u=0f32;
         if self.txty.x < self.txty.y{
+            // hit vertical wall
             t = self.txty.x;
             self.txty.x += self.dxdy.x;
             if self.rxry.x < 0f32{
@@ -186,7 +188,9 @@ impl<'a> Iterator for DDAIterator<'a> {
             }else{
                 self.cell_index.x +=1
             }
+            u = self.txty.y.fract();
         }else if self.txty.y < self.txty.x{
+            // hit horizontal wall
             t = self.txty.y;
             self.txty.y += self.dxdy.y;
             if self.rxry.y < 0_f32{
@@ -194,6 +198,7 @@ impl<'a> Iterator for DDAIterator<'a> {
             }else{
                 self.cell_index.y += 1;
             }
+            u = self.txty.x.fract();
         }else{
             t = self.txty.x;
             self.txty.y += self.dxdy.y;
@@ -208,14 +213,13 @@ impl<'a> Iterator for DDAIterator<'a> {
             }else{
                 self.cell_index.x +=1
             }
-
         }
         if (self.cell_index.x >= self.bound.min.x && self.cell_index.x < self.bound.max.x)
             && (self.cell_index.y >= self.bound.min.y && self.cell_index.y < self.bound.max.y)
         {
             Some((
                 self.cell_index,
-                t,
+                t,u
             ))
         } else {
             None

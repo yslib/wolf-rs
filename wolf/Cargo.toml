@@ -1,0 +1,13 @@
+[package]
+name = "wolf"
+version = "0.1.0"
+authors = ["ysl <visysl@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sdl2="0.34"
+glm="0.2.3"
+stb_image = "0.2.2"
+rayon="1.5.0"

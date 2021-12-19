@@ -10,11 +10,15 @@ mod resource;
 mod texture;
 mod trait_def;
 mod wolf_asset;
-//mod canvas;
+mod statemachine;
 
 mod canvas;
 
 fn main() -> Result<(), i32> {
+    let a = 5;
+    for b in 0..10{
+        println!("{}", b);
+    }
     Ok(())
 }
 
@@ -27,6 +31,7 @@ mod dda_test {
     use sdl2::keyboard::Scancode;
     use sdl2::sys::KeyCode;
     use sdl2::{event::Event, keyboard::Keycode, surface::Surface};
+    use std::collections::HashMap;
     use std::ops::Range;
 
     use crate::{camera::WolfCamera, math::Grid2, resource::MapCache, resource::TexturePool};
@@ -47,6 +52,8 @@ mod dda_test {
         let canvas_res = (400, 300);
         let mut screen = Canvas::new(canvas_res);
 
+
+
         let window = vid
             .window("Wolf", 1920, 1080)
             .position_centered()
@@ -56,6 +63,7 @@ mod dda_test {
         let mut canvas = window.into_canvas().build().unwrap();
         let texture_creator = canvas.texture_creator();
         let default_format = canvas.default_pixel_format();
+
 
         let mut rs = MapCache::load();
         let map = rs.read_map(1, 1, 0);
@@ -81,28 +89,10 @@ mod dda_test {
                     let cell_index = v.0;
                     let isect_pos = cam.dir * v.1 + cam.pos;
 
+
                     let dxdy = isect_pos - cam.pos;
                     let mut corrected = (dxdy.x * angle.cos() - dxdy.y * angle.sin());
-                    let max_depth = 20_f32;
-                    let a = Vec2::new(0f32, 200f32);
-                    let b = Vec2::new(20f32, 1f32);
-                    let k = (b.y - a.y) / (b.x - a.x);
-                    let c = (b.x * a.y - a.x * b.y) / (b.x - a.x);
-                    if corrected < 5f32 {
-                        corrected = 5f32;
-                    }
-                    // let wall_height = if corrected < a.x {
-                    //     a.y
-                    // } else if corrected >= b.x {
-                    //     b.y
-                    // } else {
-                    //     // ((1_f32 - corrected / max_depth) * canvas_res.1 as f32) as usize
-                    //     // canvas_res.1 / corrected as usize
-                    //     k * corrected + c
-                    // } as usize;
-
                     let mut wall_height = (1000.0f32 / corrected) as usize;
-
                     if wall_height > canvas_res.1 {
                         wall_height = canvas_res.1
                     }
@@ -123,6 +113,7 @@ mod dda_test {
                     }
                 }
             }
+
 
             // minimap
             {
@@ -162,11 +153,16 @@ mod dda_test {
             )
             .unwrap();
 
+
             let texture = texture_creator
                 .create_texture_from_surface(surface)
                 .unwrap();
             canvas.copy(&texture, None, None).unwrap();
             canvas.present();
+
+            for a in 0..10{
+            println!("{}", a);
+            }
 
             // handling events
             for event in event_pump.poll_iter() {
